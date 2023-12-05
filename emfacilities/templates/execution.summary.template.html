@@ -293,6 +293,8 @@
                 </div>
                 </div>
             </SECTION>
+            
+
         </DIV>
 
         <FOOTER>
@@ -316,6 +318,7 @@
             systemData: %(systemData)s
         }
         var micTable;
+        var ParticleTable;
         var refreshPaused = false;
 
         String.prototype.format = function() {
@@ -935,6 +938,9 @@
                     {"title": "ID"},
                     {"title": "Micrograph"}
                     ];
+            if('MicrographPicked' in report.ctfData){
+                cols.push({"title":"micrographPicked"})
+            }
             if('imgShiftThumbs' in report.ctfData){
                 cols.push({"title":"ShiftPlot"})
             }
@@ -997,6 +1003,78 @@
             micTable = $('#micTable').DataTable( dataTableConf);
 
         };
+        function addParticleTable(){
+            if (!('imgMicThumbs') in report.ctfData){
+                return
+            }
+            var dataset = [];
+            var cols = [
+                    {"title": "ID"},
+                    {"title": "Micrograph"}
+                    ];
+
+                    if('imgShiftThumbs' in report.ctfData){
+                cols.push({"title":"ShiftPlot"})
+            }
+            if('imgPsdThumbs' in report.ctfData){
+                cols.push({"title":"PsdFile"})
+            }
+            
+            if ('defocusU' in report.ctfData){
+                cols.push({"title": "DefocusU (µm)",
+                            "render": $.fn.dataTable.render.number( ',', '.', 2)},
+                           {"title": "Astigmatism (nm)",
+                            "render": $.fn.dataTable.render.number( ',', '.', 1)},
+                           {"title": "Max. Res (Å)",
+                             "render": $.fn.dataTable.render.number( ',', '.', 2)},
+                           //{"title": "CC value ",
+                           //  "render": $.fn.dataTable.render.number( ',', '.', 2)},
+                           //{"title": "Defocus ratio",
+                           //"render": $.fn.dataTable.render.number( ',', '.', 3)}, 
+                            {"title": "Phase shift (deg)", 
+                              "render": $.fn.dataTable.render.number( ',', '.', 1)});
+
+            } 
+            var imgLoadingIcon = '<span class="glyphicon glyphicon-hourglass" title="Loading thumbnail..."></span>';
+            var imgPathKeys = ['imgMicThumbs', 'imgShiftThumbs', 'imgPsdThumbs'];
+
+            $.each(report.ctfData.imgMicThumbs, function(index, imgMicPath) {
+                var rowValues = [report.ctfData.micId[index]]
+                for (var i in imgPathKeys){
+                    if(imgPathKeys[i] in report.ctfData){
+                        imgThumbPath = report.ctfData[imgPathKeys[i]][index];
+                        if(imgThumbPath==''){
+                            rowValues.push(imgLoadingIcon)
+                        }else{
+                            rowValues.push(imgThumbPath)
+                        }
+                    }
+                }
+                if ('defocusU' in report.ctfData){
+                    rowValues.push(report.ctfData.defocusU[index]*1e-4,
+				                    report.ctfData.astigmatism[index]*1e-1,
+                                    report.ctfData.resolution[index],
+	                                //report.ctfData.fitQuality[index],
+                                    //report.ctfData.ratio[index],
+                                   report.ctfData.phaseShift[index]);
+                }
+                
+                dataset.unshift(rowValues);
+            });
+            var dataTableConf = {
+                data: dataset,
+                 "order": [[ 0, "desc" ]],
+                columns: cols,
+                stateSave: true,
+                rowCallback: function( row, data ) {
+                    renderImagesOnRow(row, data);
+                }
+           };
+
+            $('#ParticleTable').wrap("<div class='scrolledTable'></div>");
+            ParticleTable = $('#ParticleTable').DataTable( dataTableConf);
+
+        };
         function renderImagesOnRow(row, data){
 
             // loop through the data...
@@ -1041,6 +1119,7 @@
             addSystemChart();
             addTimeSeries();
             addMicTable();
+           // addParticleTable();
         };
 
         populateReport();
